@@ -1,155 +1,753 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Attendance admin</title><link rel="stylesheet" href="/static/style.css"></head>
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Attendance admin</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+
 <body>
-<div class="top"><b id="brand">Attendance</b>
- <button class="tab on" data-t="dash">Today</button><button class="tab" data-t="emp">Employees</button>
- <button class="tab" data-t="rep">Reports</button><button class="tab" data-t="fix">Corrections</button><button class="tab" data-t="set">Settings</button>
- <span class="sp"></span><a href="/kiosk" target="_blank">Kiosk</a><button class="tab" id="out">Sign out</button></div>
-<main>
-<section id="dash"></section>
-<section id="emp" hidden></section>
-<section id="rep" hidden></section>
-<section id="fix" hidden></section>
-<section id="set" hidden></section>
-</main>
+  <div class="top"><b id="brand">Attendance</b>
+    <button class="tab on" data-t="dash">Today</button>
+    <button class="tab" data-t="emp">Employees</button>
+    <button class="tab" data-t="rep">Reports</button>
+    <button class="tab" data-t="cal">Attendance Calendar</button>
+    <button class="tab" data-t="fix">Corrections</button>
+    <button class="tab" data-t="set">Settings</button>
+    <span class="sp"></span><a href="/kiosk" target="_blank">Kiosk</a><button class="tab" id="out">Sign out</button>
+  </div>
+  <main>
+    <section id="dash"></section>
+    <section id="emp" hidden></section>
+    <section id="rep" hidden></section>
+    <section id="cal" hidden></section>
+    <section id="fix" hidden></section>
+    <section id="set" hidden></section>
+  </main>
 
-<dialog id="dlg">
- <h2>Add employee</h2>
- <div class="form-grid" style="margin-top:12px">
-  <div><label for="e_id">Employee ID</label><input id="e_id" placeholder="E002"></div>
-  <div><label for="e_name">Full name</label><input id="e_name"></div>
-  <div><label for="e_dep">Department</label><input id="e_dep"></div>
- </div>
- <div class="cam"><video id="ev" autoplay playsinline muted></video><div class="cue" id="cue">Camera is off</div></div>
- <label class="chk"><input type="checkbox" id="e_consent"><span>The employee has agreed to their face data being stored for attendance.</span></label>
- <label class="chk" style="margin-top:6px"><input type="checkbox" id="e_replace"><span>Replace existing employee with this ID</span></label>
- <div id="e_msg" class="msg err" hidden></div>
- <div class="row"><button class="btn ghost" id="e_cancel">Cancel</button><button class="btn" id="e_go">Start capture</button></div>
- <canvas id="ec" width="640" height="480" hidden></canvas>
-</dialog>
+  <dialog id="dlg">
+    <h2>Add employee</h2>
+    <div class="form-grid" style="margin-top:12px">
+      <div><label for="e_id">Employee ID</label><input id="e_id" placeholder="E002"></div>
+      <div><label for="e_name">Full name</label><input id="e_name"></div>
+      <div><label for="e_dep">Department</label><input id="e_dep"></div>
+    </div>
+    <div class="cam"><video id="ev" autoplay playsinline muted></video>
+      <div class="cue" id="cue">Camera is off</div>
+    </div>
+    <label class="chk"><input type="checkbox" id="e_consent"><span>The employee has agreed to their face data being
+        stored for attendance.</span></label>
+    <label class="chk" style="margin-top:6px"><input type="checkbox" id="e_replace"><span>Replace existing employee with
+        this ID</span></label>
+    <div id="e_msg" class="msg err" hidden></div>
+    <div class="row"><button class="btn ghost" id="e_cancel">Cancel</button><button class="btn" id="e_go">Start
+        capture</button></div>
+    <canvas id="ec" width="640" height="480" hidden></canvas>
+  </dialog>
 
-<script>
-const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function api(path,opt={}){
-  const r=await fetch(path,{method:opt.method||'GET',headers:{'Content-Type':'application/json'},body:opt.body?JSON.stringify(opt.body):undefined});
-  if(r.status===401){location.href='/login';throw new Error('login')}
-  const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'Something went wrong.');
-  return d;
-}
-const tag=s=>`<span class="tag ${s.split(' ')[0]}">${esc(s)}</span>`;
-const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
-const msg=(el,text,cls)=>{el.className='msg '+cls;el.textContent=text;el.hidden=!text};
+  <script>
+    const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    async function api(path, opt = {}) {
+      const r = await fetch(path, { method: opt.method || 'GET', headers: { 'Content-Type': 'application/json' }, body: opt.body ? JSON.stringify(opt.body) : undefined });
+      if (r.status === 401) { location.href = '/login'; throw new Error('login') }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : 'Something went wrong.');
+      return d;
+    }
+    const tag = s => `<span class="tag ${s.split(' ')[0]}">${esc(s)}</span>`;
+    const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10) };
+    const msg = (el, text, cls) => { el.className = 'msg ' + cls; el.textContent = text; el.hidden = !text };
 
-/* tabs */
-document.querySelectorAll('.tab[data-t]').forEach(b=>b.onclick=()=>show(b.dataset.t));
-$('#out').onclick=async()=>{await fetch('/api/logout',{method:'POST'});location.href='/login'};
-const loaders={dash:loadDash,emp:loadEmp,rep:loadRep,fix:loadFix,set:loadSet};
-function show(t){
-  document.querySelectorAll('section').forEach(s=>s.hidden=s.id!==t);
-  document.querySelectorAll('.tab[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
-  location.hash=t;loaders[t]();
-}
+    /* tabs */
+    document.querySelectorAll('.tab[data-t]').forEach(b => b.onclick = () => show(b.dataset.t));
+    $('#out').onclick = async () => { await fetch('/api/logout', { method: 'POST' }); location.href = '/login' };
+    const loaders = {
+      dash: loadDash,
+      emp: loadEmp,
+      rep: loadRep,
+      cal: loadCalendar,
+      fix: loadFix,
+      set: loadSet
+    };
+    function show(t) {
+      document.querySelectorAll('section').forEach(s => s.hidden = s.id !== t);
+      document.querySelectorAll('.tab[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+      location.hash = t; loaders[t]();
+    }
 
-/* today */
-async function loadDash(){
-  const d=await api('/api/admin/dashboard');
-  $('#brand').textContent=d.company;
-  const rows=d.rows;
-  $('#dash').innerHTML=`
+    /* today */
+    async function loadDash() {
+      const d = await api('/api/admin/dashboard');
+      $('#brand').textContent = d.company;
+      const rows = d.rows;
+      $('#dash').innerHTML = `
    <div class="head"><div><h2>Today</h2><small>${esc(d.date)}</small></div><button class="btn ghost small" onclick="loadDash()">Refresh</button></div>
-   ${d.holiday?`<div class="msg ok">Today is a holiday: ${esc(d.holiday)}. Nobody is counted absent.</div>`:''}
-   ${d.default_password?'<div class="msg warn">You are using the default password. Change it under Settings.</div>':''}
+   ${d.holiday ? `<div class="msg ok">Today is a holiday: ${esc(d.holiday)}. Nobody is counted absent.</div>` : ''}
+   ${d.default_password ? '<div class="msg warn">You are using the default password. Change it under Settings.</div>' : ''}
    <div class="stats">
     <div class="stat"><span>${d.present}</span><small>Present of ${d.total}</small></div>
     <div class="stat late"><span>${d.late}</span><small>Late</small></div>
     <div class="stat abs"><span>${d.absent}</span><small>Absent or not in yet</small></div>
     <div class="stat"><span>${d.inside}</span><small>Currently in</small></div>
     <div class="stat"><span>${d.leave}</span><small>On leave</small></div></div>
-   ${rows.length?`<div class="scroll"><table><tr><th>Name</th><th>Department</th><th>First IN</th><th>Last OUT</th><th>Hours</th><th>Status</th><th></th></tr>
-   ${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.department)}</td><td>${r.first_in||'-'}</td><td>${r.last_out||'-'}</td><td>${r.hours||'-'}</td><td>${tag(r.status)}</td><td>${esc(r.note)}</td></tr>`).join('')}</table></div>`
-   :'<div class="empty">No employees yet. Add your first one under Employees.</div>'}`;
-}
+   ${rows.length ? `<div class="scroll"><table><tr><th>Name</th><th>Department</th><th>First IN</th><th>Last OUT</th><th>Hours</th><th>Status</th><th></th></tr>
+   ${rows.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.department)}</td><td>${r.first_in || '-'}</td><td>${r.last_out || '-'}</td><td>${r.hours || '-'}</td><td>${tag(r.status)}</td><td>${esc(r.note)}</td></tr>`).join('')}</table></div>`
+          : '<div class="empty">No employees yet. Add your first one under Employees.</div>'}`;
+    }
 
-/* employees */
-async function loadEmp(){
-  const list=await api('/api/admin/employees');
-  $('#emp').innerHTML=`<div class="head"><h2>Employees</h2><button class="btn" id="add">Add employee</button></div>
-   ${list.length?`<div class="scroll"><table><tr><th>ID</th><th>Name</th><th>Department</th><th>Enrolled</th><th>Status</th><th></th></tr>
-   ${list.map(e=>`<tr><td>${esc(e.emp_id)}</td><td>${esc(e.name)}</td><td>${esc(e.department)}</td><td>${esc((e.created_at||'').slice(0,10))}</td>
-   <td>${e.active?'<span class="tag Present">Active</span>':'<span class="tag OUT">Removed</span>'}</td>
-   <td>${e.active?`<button class="btn danger small" data-rm="${esc(e.emp_id)}" data-n="${esc(e.name)}">Remove</button>`:''}</td></tr>`).join('')}</table></div>`
-   :'<div class="empty">No employees yet. Select Add employee to capture a face.</div>'}
-   <p style="color:var(--muted);font-size:13px">Removing an employee deletes their face data. Past attendance records are kept.</p>`;
-  $('#add').onclick=openEnroll;
-  document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{
-    if(!confirm(`Remove ${b.dataset.n} and delete their face data?`))return;
-    await api('/api/admin/employees/'+encodeURIComponent(b.dataset.rm),{method:'DELETE'});loadEmp()});
-}
-let stream=null;
-async function openEnroll(){
-  ['e_id','e_name','e_dep'].forEach(i=>$('#'+i).value='');$('#e_consent').checked=$('#e_replace').checked=false;msg($('#e_msg'),'','err');
-  $('#cue').textContent='Starting camera...';$('#dlg').showModal();
-  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:false});$('#ev').srcObject=stream;$('#cue').textContent='Fill in the details, then start capture'}
-  catch{$('#cue').textContent='Camera blocked. Allow camera access and try again.'}
-}
-function closeEnroll(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('#dlg').close()}
-$('#e_cancel').onclick=closeEnroll;$('#dlg').addEventListener('cancel',closeEnroll);
-$('#e_go').onclick=async()=>{
-  const m=$('#e_msg');msg(m,'','err');
-  if(!stream)return msg(m,'The camera is not available.','err');
-  if(!$('#e_id').value.trim()||!$('#e_name').value.trim())return msg(m,'Enter the employee ID and name.','err');
-  if(!$('#e_consent').checked)return msg(m,'Tick the consent box before capturing.','err');
-  $('#e_go').disabled=true;
-  const cues=['Look straight at the camera','Turn slightly to your left','Turn slightly to your right','Tilt your chin up a little','Look straight and smile'];
-  const ctx=$('#ec').getContext('2d'),imgs=[];
-  for(const q of cues){$('#cue').textContent=q;await sleep(1500);ctx.drawImage($('#ev'),0,0,640,480);imgs.push($('#ec').toDataURL('image/jpeg',0.9))}
-  $('#cue').textContent='Saving...';
-  try{
-    await api('/api/admin/employees',{method:'POST',body:{emp_id:$('#e_id').value,name:$('#e_name').value,department:$('#e_dep').value,
-      consent:true,replace:$('#e_replace').checked,images:imgs}});
-    closeEnroll();loadEmp();
-  }catch(e){msg(m,e.message,'err');$('#cue').textContent='Fix the issue, then start capture again'}
-  $('#e_go').disabled=false;
-};
+    /* employees */
+    /* employees */
+    async function loadEmp() {
+      const list = await api('/api/admin/employees');
 
-/* reports */
-function loadRep(){
-  if(!$('#rep').dataset.ready){
-    $('#rep').dataset.ready=1;
-    $('#rep').innerHTML=`<div class="head"><h2>Reports</h2>
-     <div class="tools"><div><label for="r_s">From</label><input type="date" id="r_s"></div><div><label for="r_e">To</label><input type="date" id="r_e"></div>
-     <button class="btn" id="r_go">Show report</button><button class="btn ghost" id="r_x">Export to Excel</button></div></div>
-     <div id="r_msg" class="msg err" hidden></div><div id="r_out"></div>`;
-    $('#r_s').value=$('#r_e').value=today();
-    $('#r_go').onclick=runReport;
-    $('#r_x').onclick=()=>{location.href=`/api/admin/export?start=${$('#r_s').value}&end=${$('#r_e').value}`};
-  }
-  runReport();
-}
-async function runReport(){
-  msg($('#r_msg'),'','err');
-  try{
-    const d=await api(`/api/admin/report?start=${$('#r_s').value}&end=${$('#r_e').value}`);
-    $('#r_out').innerHTML=(d.summary.length?`<h3 style="margin:8px 0">Summary</h3><div class="scroll"><table><tr><th>Name</th><th>Department</th><th>Days present</th><th>Days late</th><th>Days absent</th><th>Days on leave</th><th>Total hours</th></tr>
-     ${d.summary.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.department)}</td><td>${r.present}</td><td>${r.late}</td><td>${r.absent}</td><td>${r.leave}</td><td>${r.hours}</td></tr>`).join('')}</table></div>`:'')+
-     (d.rows.length?`<h3 style="margin:22px 0 8px">Daily detail</h3><div class="scroll"><table><tr><th>Date</th><th>Name</th><th>First IN</th><th>Last OUT</th><th>Hours</th><th>Status</th><th></th></tr>
-     ${d.rows.map(r=>`<tr><td>${esc(r.date)} ${esc(r.weekday)}</td><td>${esc(r.name)}</td><td>${r.first_in||'-'}</td><td>${r.last_out||'-'}</td><td>${r.hours||'-'}</td><td>${tag(r.status)}</td><td>${esc(r.note)}</td></tr>`).join('')}</table></div>`
-     :'<div class="empty">No attendance in this period.</div>');
-  }catch(e){msg($('#r_msg'),e.message,'err')}
-}
+      $('#emp').innerHTML = `
+    <div class="head">
+      <h2>Employees</h2>
+      <button class="btn" id="add">Add employee</button>
+    </div>
+
+    ${list.length ? `
+      <div class="scroll">
+        <table>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Department</th>
+            <th>Enrolled</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+
+          ${list.map(e => `
+            <tr>
+              <td>${esc(e.emp_id)}</td>
+              <td>${esc(e.name)}</td>
+              <td>${esc(e.department || '-')}</td>
+              <td>${esc((e.created_at || '').slice(0, 10))}</td>
+              <td>
+                ${e.active
+          ? '<span class="tag Present">Active</span>'
+          : '<span class="tag OUT">Removed</span>'}
+              </td>
+              <td>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button
+                    class="btn small"
+                    data-dept="${esc(e.emp_id)}"
+                    data-name="${esc(e.name)}"
+                    data-current="${esc(e.department || '')}">
+                    Edit Department
+                  </button>
+
+                  ${e.active ? `
+                    <button
+                      class="btn danger small"
+                      data-rm="${esc(e.emp_id)}"
+                      data-n="${esc(e.name)}">
+                      Remove
+                    </button>
+                  ` : ''}
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>
+    ` : '<div class="empty">No employees yet. Select Add employee to capture a face.</div>'}
+
+    <p style="color:var(--muted);font-size:13px">
+      Department can be changed without capturing the employee face again.
+      Removing an employee deletes their face data. Past attendance records are kept.
+    </p>
+  `;
+
+      // Add employee button
+      $('#add').onclick = openEnroll;
+
+      // Edit department
+      document.querySelectorAll('[data-dept]').forEach(b => {
+        b.onclick = async () => {
+          const empId = b.dataset.dept;
+          const empName = b.dataset.name;
+          const currentDepartment = b.dataset.current || '';
+
+          const newDepartment = prompt(
+            `Enter department for ${empName}:`,
+            currentDepartment
+          );
+
+          if (newDepartment === null) return;
+
+          try {
+            await api(
+              '/api/admin/employees/' + encodeURIComponent(empId) + '/department',
+              {
+                method: 'PATCH',
+                body: {
+                  department: newDepartment.trim()
+                }
+              }
+            );
+
+            alert('Department updated successfully!');
+            await loadEmp();
+
+          } catch (err) {
+            alert(err.message || 'Failed to update department.');
+          }
+        };
+      });
+
+      // Remove employee
+      document.querySelectorAll('[data-rm]').forEach(b => {
+        b.onclick = async () => {
+          if (!confirm(`Remove ${b.dataset.n} and delete their face data?`)) return;
+
+          await api(
+            '/api/admin/employees/' + encodeURIComponent(b.dataset.rm),
+            { method: 'DELETE' }
+          );
+
+          await loadEmp();
+        };
+      });
+    }
+    let stream = null;
+    async function openEnroll() {
+      ['e_id', 'e_name', 'e_dep'].forEach(i => $('#' + i).value = ''); $('#e_consent').checked = $('#e_replace').checked = false; msg($('#e_msg'), '', 'err');
+      $('#cue').textContent = 'Starting camera...'; $('#dlg').showModal();
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false }); $('#ev').srcObject = stream; $('#cue').textContent = 'Fill in the details, then start capture' }
+      catch { $('#cue').textContent = 'Camera blocked. Allow camera access and try again.' }
+    }
+    function closeEnroll() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null } $('#dlg').close() }
+    $('#e_cancel').onclick = closeEnroll; $('#dlg').addEventListener('cancel', closeEnroll);
+    $('#e_go').onclick = async () => {
+      const m = $('#e_msg'); msg(m, '', 'err');
+      if (!stream) return msg(m, 'The camera is not available.', 'err');
+      if (!$('#e_id').value.trim() || !$('#e_name').value.trim()) return msg(m, 'Enter the employee ID and name.', 'err');
+      if (!$('#e_consent').checked) return msg(m, 'Tick the consent box before capturing.', 'err');
+      $('#e_go').disabled = true;
+      const cues = ['Look straight at the camera', 'Turn slightly to your left', 'Turn slightly to your right', 'Tilt your chin up a little', 'Look straight and smile'];
+      const ctx = $('#ec').getContext('2d'), imgs = [];
+      for (const q of cues) { $('#cue').textContent = q; await sleep(1500); ctx.drawImage($('#ev'), 0, 0, 640, 480); imgs.push($('#ec').toDataURL('image/jpeg', 0.9)) }
+      $('#cue').textContent = 'Saving...';
+      try {
+        await api('/api/admin/employees', {
+          method: 'POST', body: {
+            emp_id: $('#e_id').value, name: $('#e_name').value, department: $('#e_dep').value,
+            consent: true, replace: $('#e_replace').checked, images: imgs
+          }
+        });
+        closeEnroll(); loadEmp();
+      } catch (e) { msg(m, e.message, 'err'); $('#cue').textContent = 'Fix the issue, then start capture again' }
+      $('#e_go').disabled = false;
+    };
+
+    /* reports */
+
+    let reportData = null;
+
+    function loadRep() {
+      if (!$('#rep').dataset.ready) {
+        $('#rep').dataset.ready = 1;
+
+        $('#rep').innerHTML = `
+          <div class="head">
+            <h2>Reports</h2>
+            <div class="tools">
+              <div>
+                <label for="r_s">From</label>
+                <input type="date" id="r_s">
+              </div>
+              <div>
+                <label for="r_e">To</label>
+                <input type="date" id="r_e">
+              </div>
+              <div>
+                <label for="r_search">Employee Search</label>
+                <input type="text" id="r_search" placeholder="Search name or employee ID">
+              </div>
+              <div>
+                <label for="r_department">Department</label>
+                <select id="r_department">
+                  <option value="">All Departments</option>
+                </select>
+              </div>
+              <button class="btn" id="r_go">Show report</button>
+              <button class="btn ghost" id="r_x">Export to Excel</button>
+            </div>
+          </div>
+          <div id="r_msg" class="msg err" hidden></div>
+          <div id="r_out"></div>
+        `;
+
+        $('#r_s').value = today();
+        $('#r_e').value = today();
+
+        $('#r_go').onclick = runReport;
+        $('#r_search').addEventListener('input', renderReport);
+        $('#r_department').addEventListener('change', renderReport);
+        $('#r_x').onclick = () => {
+          location.href = `/api/admin/export?start=${$('#r_s').value}&end=${$('#r_e').value}`;
+        };
+      }
+
+      runReport();
+    }
 
 
-/* corrections */
-async function loadFix(){
-  const emps=(await api('/api/admin/employees')).filter(e=>e.active);
-  const day=$('#f_day')?.value||today();
-  $('#fix').innerHTML=`<div class="head"><h2>Corrections</h2></div>
+    async function runReport() {
+      msg($('#r_msg'), '', 'err');
+      try {
+        const start = $('#r_s').value;
+        const end = $('#r_e').value;
+        reportData = await api(`/api/admin/report?start=${start}&end=${end}`);
+        updateDepartmentOptions();
+        renderReport();
+      } catch (e) {
+        reportData = null;
+        $('#r_out').innerHTML = '';
+        msg($('#r_msg'), e.message, 'err');
+      }
+    }
+
+
+    function updateDepartmentOptions() {
+      const select = $('#r_department');
+      if (!select || !reportData) return;
+
+      const currentValue = select.value;
+      const departments = [...new Set((reportData.summary || [])
+        .map(r => String(r.department || '').trim())
+        .filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+
+      select.innerHTML = '<option value="">All Departments</option>' +
+        departments.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+
+      if (departments.includes(currentValue)) select.value = currentValue;
+    }
+
+
+    function renderReport() {
+      if (!reportData) return;
+
+      const searchText = ($('#r_search').value || '').trim().toLowerCase();
+      const department = ($('#r_department').value || '').trim();
+
+      function matchesFilters(r) {
+        const name = String(r.name || '').toLowerCase();
+        const empId = String(r.emp_id || r.employee_id || '').toLowerCase();
+        const rowDepartment = String(r.department || '').trim();
+
+        const matchesSearch = !searchText || name.includes(searchText) || empId.includes(searchText);
+        const matchesDepartment = !department || rowDepartment === department;
+        return matchesSearch && matchesDepartment;
+      }
+
+      const filteredSummary = (reportData.summary || []).filter(matchesFilters);
+      const filteredRows = (reportData.rows || []).filter(matchesFilters);
+      let html = '';
+
+      // Summary table
+      if (filteredSummary.length) {
+        html += `
+          <h3 style="margin:8px 0">Summary</h3>
+          <div class="scroll">
+            <table>
+              <tr>
+                <th>Name</th><th>Department</th><th>Days present</th>
+                <th>Days late</th><th>Days absent</th><th>Days on leave</th><th>Total hours</th>
+              </tr>
+              ${filteredSummary.map(r => `
+                <tr>
+                  <td>${esc(r.name)}</td><td>${esc(r.department)}</td>
+                  <td>${r.present}</td><td>${r.late}</td><td>${r.absent}</td>
+                  <td>${r.leave}</td><td>${esc(r.hours)}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        `;
+      }
+
+      // Daily detail table
+      if (filteredRows.length) {
+        html += `
+          <h3 style="margin:22px 0 8px">Daily detail</h3>
+          <div class="scroll">
+            <table>
+              <tr>
+                <th>Date</th><th>Name</th><th>First IN</th><th>Last OUT</th>
+                <th>Completed Hours</th><th>Ongoing Hours</th>
+                <th>Total Work Hours</th><th>Status</th><th>Note</th>
+              </tr>
+              ${filteredRows.map(r => `
+                <tr>
+                  <td>${esc(r.date)} ${esc(r.weekday)}</td>
+                  <td>${esc(r.name)}</td>
+                  <td>${esc(r.first_in || '-')}</td>
+                  <td>${esc(r.last_out || '-')}</td>
+                  <td>${esc(r.completed_hours || r.hours || '00:00')}</td>
+                  <td>${esc(r.ongoing_hours || '00:00')}</td>
+                  <td><strong>${esc(r.total_work_hours || r.hours || '00:00')}</strong></td>
+                  <td>${tag(r.status)}</td>
+                  <td>${esc(r.note)}</td>
+                </tr>
+              `).join('')}
+            </table>
+          </div>
+        `;
+      }
+
+      // No data message
+      if (!filteredSummary.length && !filteredRows.length) {
+        const filtersApplied = searchText || department;
+        html = `
+          <div class="empty">
+            ${filtersApplied
+            ? 'No employees found for the selected filters.'
+            : 'No attendance in this period.'}
+          </div>
+        `;
+      }
+
+      $('#r_out').innerHTML = html;
+    }
+
+
+    /* corrections */
+
+    /* attendance calendar */
+
+    let calendarEmployees = [];
+    let calendarData = [];
+    let calendarWeeklyOff = [];
+    let calendarHolidays = [];
+    let calendarLeaves = [];
+    let calendarMonth = new Date();
+    let calendarReady = false;
+
+    async function loadCalendar() {
+      if (!calendarReady) {
+        calendarReady = true;
+
+        $('#cal').innerHTML = `
+      <div class="head">
+        <h2>Attendance Calendar</h2>
+      </div>
+
+      <div class="tools" style="margin-bottom:16px">
+        <button class="btn ghost" id="cal_prev">← Previous</button>
+        <h3 id="cal_month" style="margin:0;min-width:160px;text-align:center"></h3>
+        <button class="btn ghost" id="cal_next">Next →</button>
+
+        <div>
+          <label for="cal_emp">Employee</label>
+          <select id="cal_emp">
+            <option value="">Select employee</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="cal_msg" class="msg err" hidden></div>
+      <div id="cal_stats"></div>
+      <div id="cal_grid"></div>
+    `;
+
+        $('#cal_prev').onclick = () => {
+          calendarMonth.setMonth(calendarMonth.getMonth() - 1);
+          loadCalendarMonth();
+        };
+
+        $('#cal_next').onclick = () => {
+          calendarMonth.setMonth(calendarMonth.getMonth() + 1);
+          loadCalendarMonth();
+        };
+
+        $('#cal_emp').onchange = renderCalendar;
+      }
+
+      try {
+        const [employees, settings, holidays, leaves] = await Promise.all([
+          api('/api/admin/employees'),
+          api('/api/admin/settings'),
+          api('/api/admin/holidays'),
+          api('/api/admin/leaves')
+        ]);
+
+        calendarEmployees = employees;
+        calendarWeeklyOff = settings.weekly_off || [];
+        calendarHolidays = holidays || [];
+        calendarLeaves = leaves || [];
+
+        $('#cal_emp').innerHTML =
+          '<option value="">Select employee</option>' +
+          calendarEmployees
+            .filter(e => e.active)
+            .map(e => `<option value="${esc(e.emp_id)}">
+      ${esc(e.name)} (${esc(e.emp_id)})
+    </option>`)
+            .join('');
+
+        await loadCalendarMonth();
+      } catch (e) {
+        msg($('#cal_msg'), e.message, 'err');
+      }
+    }
+
+    async function loadCalendarMonth() {
+      const year = calendarMonth.getFullYear();
+      const month = calendarMonth.getMonth();
+
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0);
+
+      const formatDate = d => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+
+      const startDate = formatDate(start);
+      const endDate = formatDate(end);
+
+      $('#cal_month').textContent = calendarMonth.toLocaleString('en', {
+        month: 'long',
+        year: 'numeric'
+      });
+
+      msg($('#cal_msg'), '', 'err');
+
+      try {
+        const data = await api(
+          `/api/admin/report?start=${startDate}&end=${endDate}`
+        );
+
+        calendarData = data.rows || [];
+        renderCalendar();
+      } catch (e) {
+        calendarData = [];
+        $('#cal_grid').innerHTML = '';
+        msg($('#cal_msg'), e.message, 'err');
+      }
+    }
+
+    function renderCalendar() {
+      const empId = $('#cal_emp').value;
+
+      if (!empId) {
+        $('#cal_stats').innerHTML = '';
+        $('#cal_grid').innerHTML =
+          '<div class="empty">Select an employee to view attendance.</div>';
+        return;
+      }
+
+      const year = calendarMonth.getFullYear();
+      const month = calendarMonth.getMonth();
+
+      const rows = calendarData.filter(r =>
+        String(r.emp_id || r.employee_id) === String(empId)
+      );
+
+      // Attendance records indexed by date
+      const byDate = {};
+      rows.forEach(r => {
+        byDate[r.date] = r;
+      });
+
+      // Employee leave records
+      const employeeLeaves = calendarLeaves.filter(l =>
+        String(l.emp_id || l.employee_id) === String(empId)
+      );
+
+      const firstDay = new Date(year, month, 1);
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      // Monday-based offset
+      const offset = (firstDay.getDay() + 6) % 7;
+
+      const cells = [];
+
+      for (let i = 0; i < offset; i++) {
+        cells.push('<div class="cal-cell cal-empty"></div>');
+      }
+
+      let present = 0;
+      let late = 0;
+      let absent = 0;
+      let leave = 0;
+      let totalHours = 0;
+
+      // Local date string (YYYY-MM-DD)
+      const todayKey = today();
+
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, month, day);
+
+        const key = [
+          year,
+          String(month + 1).padStart(2, '0'),
+          String(day).padStart(2, '0')
+        ].join('-');
+
+        const row = byDate[key];
+
+        const status = row ? String(row.status || '').toLowerCase() : '';
+
+        const hours = row
+          ? (row.total_work_hours || row.hours || '00:00')
+          : '00:00';
+
+        let cls = 'cal-none';
+        let label = '—';
+
+        // Holiday check
+        const holiday = calendarHolidays.find(h => h.day === key);
+
+        // Weekly off check
+        const weekday = date.toLocaleDateString('en-US', {
+          weekday: 'long'
+        });
+
+        const isWeeklyOff = calendarWeeklyOff.includes(weekday);
+
+        // Leave check using leave API records
+        const isLeave = employeeLeaves.some(l =>
+          l.day === key
+        );
+
+        // Status priority
+        if (holiday) {
+          cls = 'cal-holiday';
+          label = holiday.name || 'Holiday';
+
+        } else if (isWeeklyOff) {
+          cls = 'cal-weekoff';
+          label = 'Weekly Off';
+
+        } else if (isLeave || (row && status.includes('leave'))) {
+          cls = 'cal-leave';
+          label = 'Leave';
+          leave++;
+
+        } else if (row && status.includes('late')) {
+          cls = 'cal-late';
+          label = 'Late';
+          late++;
+
+        } else if (row && status.includes('present')) {
+          cls = 'cal-present';
+          label = 'Present';
+          present++;
+
+        } else if (row && status.includes('absent')) {
+          cls = 'cal-absent';
+          label = 'Absent';
+          absent++;
+
+        } else if (row && status.includes('not in yet')) {
+          cls = 'cal-other';
+          label = 'Not in yet';
+
+        } else if (key > todayKey) {
+          cls = 'cal-none';
+          label = 'Future';
+
+        } else if (key < todayKey) {
+          // Past working day with no attendance or leave
+          cls = 'cal-absent';
+          label = 'Absent';
+          absent++;
+
+        } else {
+          // Today - attendance not started/recorded yet
+          cls = 'cal-other';
+          label = 'Not in yet';
+        }
+
+        // Calculate total hours
+        if (row) {
+          const parts = String(hours).split(':');
+
+          if (parts.length >= 2) {
+            totalHours +=
+              (Number(parts[0]) || 0) +
+              (Number(parts[1]) || 0) / 60;
+          }
+        }
+
+        cells.push(`
+      <div class="cal-cell ${cls}">
+        <div class="cal-day">${day}</div>
+        <div class="cal-status">${esc(label)}</div>
+        <div class="cal-hours">${row ? esc(hours) + ' hrs' : ''}</div>
+      </div>
+    `);
+      }
+
+      // Complete final calendar row
+      const remaining = cells.length % 7;
+
+      if (remaining) {
+        for (let i = remaining; i < 7; i++) {
+          cells.push('<div class="cal-cell cal-empty"></div>');
+        }
+      }
+
+      // Monthly summary
+      $('#cal_stats').innerHTML = `
+    <div class="stats">
+      <div class="stat">
+        <span>${present}</span>
+        <small>Present</small>
+      </div>
+
+      <div class="stat late">
+        <span>${late}</span>
+        <small>Late</small>
+      </div>
+
+      <div class="stat abs">
+        <span>${absent}</span>
+        <small>Absent</small>
+      </div>
+
+      <div class="stat">
+        <span>${leave}</span>
+        <small>Leave</small>
+      </div>
+
+      <div class="stat">
+        <span>${totalHours.toFixed(2)}</span>
+        <small>Total hours</small>
+      </div>
+    </div>
+  `;
+
+      // Render calendar grid
+      $('#cal_grid').innerHTML = `
+    <div class="cal-calendar">
+      ${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+          .map(d => `<div class="cal-weekday">${d}</div>`)
+          .join('')}
+      ${cells.join('')}
+    </div>
+  `;
+    }
+
+    async function loadFix() {
+      const emps = (await api('/api/admin/employees')).filter(e => e.active);
+      const day = $('#f_day')?.value || today();
+      $('#fix').innerHTML = `<div class="head"><h2>Corrections</h2></div>
    <p style="color:var(--muted);margin-top:0">Add a forgotten IN or OUT, or cancel a wrong one. Every change keeps your reason, and cancelled punches stay visible.</p>
    <h3 style="margin:14px 0 8px">Add a punch</h3>
    <div class="form-grid">
-    <div><label for="f_emp">Employee</label><select id="f_emp">${emps.map(e=>`<option value="${esc(e.emp_id)}">${esc(e.name)} (${esc(e.emp_id)})</option>`).join('')}</select></div>
+    <div><label for="f_emp">Employee</label><select id="f_emp">${emps.map(e => `<option value="${esc(e.emp_id)}">${esc(e.name)} (${esc(e.emp_id)})</option>`).join('')}</select></div>
     <div><label for="f_d">Date</label><input type="date" id="f_d" value="${day}" max="${today()}"></div>
     <div><label for="f_t">Time</label><input type="time" id="f_t"></div>
     <div><label for="f_e">Type</label><select id="f_e"><option>IN</option><option>OUT</option></select></div>
@@ -161,7 +759,7 @@ async function loadFix(){
    <h3 style="margin:34px 0 8px">Mark leave</h3>
    <p style="color:var(--muted);margin:0 0 10px">Days on leave are not counted absent. Use one date for a single day.</p>
    <div class="form-grid">
-    <div><label for="l_emp">Employee</label><select id="l_emp">${emps.map(e=>`<option value="${esc(e.emp_id)}">${esc(e.name)} (${esc(e.emp_id)})</option>`).join('')}</select></div>
+    <div><label for="l_emp">Employee</label><select id="l_emp">${emps.map(e => `<option value="${esc(e.emp_id)}">${esc(e.name)} (${esc(e.emp_id)})</option>`).join('')}</select></div>
     <div><label for="l_s">From</label><input type="date" id="l_s" value="${today()}"></div>
     <div><label for="l_e">To</label><input type="date" id="l_e" value="${today()}"></div>
     <div><label for="l_t">Type</label><select id="l_t"><option>Casual</option><option>Sick</option><option>Other</option></select></div>
@@ -169,56 +767,60 @@ async function loadFix(){
    </div>
    <div id="l_msg" class="msg err" hidden></div><button class="btn" id="l_add" style="margin-top:8px">Add leave</button>
    <div id="l_list" style="margin-top:16px"></div>`;
-  $('#f_day').onchange=()=>{$('#f_d').value=$('#f_day').value;listPunches()};
-  $('#f_add').onclick=async()=>{
-    const m=$('#f_msg');msg(m,'','err');
-    try{
-      await api('/api/admin/attendance',{method:'POST',body:{emp_id:$('#f_emp').value,day:$('#f_d').value,time:$('#f_t').value,event:$('#f_e').value,reason:$('#f_r').value}});
-      $('#f_day').value=$('#f_d').value;loadFix();
-    }catch(e){msg(m,e.message,'err')}
-  };
-  $('#l_add').onclick=async()=>{const m=$('#l_msg');msg(m,'','err');try{
-    await api('/api/admin/leaves',{method:'POST',body:{emp_id:$('#l_emp').value,start:$('#l_s').value,end:$('#l_e').value,type:$('#l_t').value,note:$('#l_n').value}});
-    $('#l_n').value='';loadLeaves()}catch(e){msg(m,e.message,'err')}};
-  listPunches();loadLeaves();
-}
-async function loadLeaves(){
-  const l=await api('/api/admin/leaves');
-  $('#l_list').innerHTML=l.length?`<div class="scroll"><table><tr><th>Date</th><th>Employee</th><th>Type</th><th>Note</th><th></th></tr>${l.map(x=>`<tr><td>${esc(x.day)}</td><td>${esc(x.name||x.emp_id)}</td><td>${esc(x.type)}</td><td>${esc(x.note)}</td>
-   <td><button class="btn danger small" data-lv="${x.id}">Remove</button></td></tr>`).join('')}</table></div><small style="color:var(--muted)">Showing the last 30 days and the next 90.</small>`:'<small style="color:var(--muted)">No leave recorded.</small>';
-  document.querySelectorAll('[data-lv]').forEach(b=>b.onclick=async()=>{await api('/api/admin/leaves/'+b.dataset.lv,{method:'DELETE'});loadLeaves()});
-}
-async function listPunches(){
-  const list=await api('/api/admin/events?day='+$('#f_day').value);
-  $('#f_list').innerHTML=list.length?`<div class="scroll"><table><tr><th>Time</th><th>Name</th><th>Type</th><th>Source</th><th>Note</th><th></th></tr>
-   ${list.map(p=>`<tr style="${p.voided?'opacity:.55;text-decoration:line-through':''}"><td>${esc(p.timestamp.slice(11,16))}</td><td>${esc(p.name)}</td><td>${tag(p.event)}</td>
-   <td>${esc(p.source==='manual'?'Admin':'Kiosk')}</td><td style="text-decoration:none">${esc(p.note)}</td>
-   <td>${p.voided?'':`<button class="btn danger small" data-v="${p.id}">Cancel</button>`}</td></tr>`).join('')}</table></div>`
-   :'<div class="empty">No punches on this date.</div>';
-  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=async()=>{
-    const reason=prompt('Why are you cancelling this punch?');if(!reason)return;
-    try{await api(`/api/admin/attendance/${b.dataset.v}/void`,{method:'POST',body:{reason}});listPunches()}catch(e){alert(e.message)}});
-}
+      $('#f_day').onchange = () => { $('#f_d').value = $('#f_day').value; listPunches() };
+      $('#f_add').onclick = async () => {
+        const m = $('#f_msg'); msg(m, '', 'err');
+        try {
+          await api('/api/admin/attendance', { method: 'POST', body: { emp_id: $('#f_emp').value, day: $('#f_d').value, time: $('#f_t').value, event: $('#f_e').value, reason: $('#f_r').value } });
+          $('#f_day').value = $('#f_d').value; loadFix();
+        } catch (e) { msg(m, e.message, 'err') }
+      };
+      $('#l_add').onclick = async () => {
+        const m = $('#l_msg'); msg(m, '', 'err'); try {
+          await api('/api/admin/leaves', { method: 'POST', body: { emp_id: $('#l_emp').value, start: $('#l_s').value, end: $('#l_e').value, type: $('#l_t').value, note: $('#l_n').value } });
+          $('#l_n').value = ''; loadLeaves()
+        } catch (e) { msg(m, e.message, 'err') }
+      };
+      listPunches(); loadLeaves();
+    }
+    async function loadLeaves() {
+      const l = await api('/api/admin/leaves');
+      $('#l_list').innerHTML = l.length ? `<div class="scroll"><table><tr><th>Date</th><th>Employee</th><th>Type</th><th>Note</th><th></th></tr>${l.map(x => `<tr><td>${esc(x.day)}</td><td>${esc(x.name || x.emp_id)}</td><td>${esc(x.type)}</td><td>${esc(x.note)}</td>
+   <td><button class="btn danger small" data-lv="${x.id}">Remove</button></td></tr>`).join('')}</table></div><small style="color:var(--muted)">Showing the last 30 days and the next 90.</small>` : '<small style="color:var(--muted)">No leave recorded.</small>';
+      document.querySelectorAll('[data-lv]').forEach(b => b.onclick = async () => { await api('/api/admin/leaves/' + b.dataset.lv, { method: 'DELETE' }); loadLeaves() });
+    }
+    async function listPunches() {
+      const list = await api('/api/admin/events?day=' + $('#f_day').value);
+      $('#f_list').innerHTML = list.length ? `<div class="scroll"><table><tr><th>Time</th><th>Name</th><th>Type</th><th>Source</th><th>Note</th><th></th></tr>
+   ${list.map(p => `<tr style="${p.voided ? 'opacity:.55;text-decoration:line-through' : ''}"><td>${esc(p.timestamp.slice(11, 16))}</td><td>${esc(p.name)}</td><td>${tag(p.event)}</td>
+   <td>${esc(p.source === 'manual' ? 'Admin' : 'Kiosk')}</td><td style="text-decoration:none">${esc(p.note)}</td>
+   <td>${p.voided ? '' : `<button class="btn danger small" data-v="${p.id}">Cancel</button>`}</td></tr>`).join('')}</table></div>`
+        : '<div class="empty">No punches on this date.</div>';
+      document.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
+        const reason = prompt('Why are you cancelling this punch?'); if (!reason) return;
+        try { await api(`/api/admin/attendance/${b.dataset.v}/void`, { method: 'POST', body: { reason } }); listPunches() } catch (e) { alert(e.message) }
+      });
+    }
 
-/* backups list */
-async function loadBackups(){
-  const l=await api('/api/admin/backups');
-  $('#b_list').innerHTML=l.length?`<div class="scroll"><table><tr><th>Backup</th><th>Made at</th><th>Size</th></tr>${l.map(b=>`<tr><td>${esc(b.name)}</td><td>${esc(b.time)}</td><td>${b.size_kb} KB</td></tr>`).join('')}</table></div>`:'<small style="color:var(--muted)">No backups yet. The first one is made about a minute after the server starts.</small>';
-}
+    /* backups list */
+    async function loadBackups() {
+      const l = await api('/api/admin/backups');
+      $('#b_list').innerHTML = l.length ? `<div class="scroll"><table><tr><th>Backup</th><th>Made at</th><th>Size</th></tr>${l.map(b => `<tr><td>${esc(b.name)}</td><td>${esc(b.time)}</td><td>${b.size_kb} KB</td></tr>`).join('')}</table></div>` : '<small style="color:var(--muted)">No backups yet. The first one is made about a minute after the server starts.</small>';
+    }
 
-/* holidays list */
-async function loadHolidays(){
-  const l=await api('/api/admin/holidays');
-  $('#h_list').innerHTML=l.length?`<div class="scroll"><table><tr><th>Date</th><th>Holiday</th><th></th></tr>${l.map(x=>`<tr><td>${esc(x.day)}</td><td>${esc(x.name)}</td>
-   <td><button class="btn danger small" data-hd="${esc(x.day)}">Remove</button></td></tr>`).join('')}</table></div>`:'<small style="color:var(--muted)">No holidays added yet.</small>';
-  document.querySelectorAll('[data-hd]').forEach(b=>b.onclick=async()=>{await api('/api/admin/holidays/'+encodeURIComponent(b.dataset.hd),{method:'DELETE'});loadHolidays()});
-}
+    /* holidays list */
+    async function loadHolidays() {
+      const l = await api('/api/admin/holidays');
+      $('#h_list').innerHTML = l.length ? `<div class="scroll"><table><tr><th>Date</th><th>Holiday</th><th></th></tr>${l.map(x => `<tr><td>${esc(x.day)}</td><td>${esc(x.name)}</td>
+   <td><button class="btn danger small" data-hd="${esc(x.day)}">Remove</button></td></tr>`).join('')}</table></div>` : '<small style="color:var(--muted)">No holidays added yet.</small>';
+      document.querySelectorAll('[data-hd]').forEach(b => b.onclick = async () => { await api('/api/admin/holidays/' + encodeURIComponent(b.dataset.hd), { method: 'DELETE' }); loadHolidays() });
+    }
 
-/* settings */
-const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-async function loadSet(){
-  const s=await api('/api/admin/settings');
-  $('#set').innerHTML=`<div class="head"><h2>Settings</h2></div>
+    /* settings */
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    async function loadSet() {
+      const s = await api('/api/admin/settings');
+      $('#set').innerHTML = `<div class="head"><h2>Settings</h2></div>
    <div class="form-grid">
     <div><label for="s_c">Company name</label><input id="s_c" value="${esc(s.company_name)}"></div>
     <div><label for="s_t">Office start time</label><input id="s_t" type="time" value="${s.office_start}"></div>
@@ -226,8 +828,8 @@ async function loadSet(){
     <div><label for="s_m">Minimum minutes between IN and OUT</label><input id="s_m" type="number" min="1" max="240" value="${s.min_gap_minutes}"></div>
     <div><label for="s_h">Face match threshold (0.25 to 0.80)</label><input id="s_h" type="number" step="0.01" min="0.25" max="0.8" value="${s.threshold}"></div>
    </div>
-   <div style="margin:16px 0"><label>Weekly off days</label><div class="days">${DAYS.map(d=>`<label><input type="checkbox" value="${d}" ${s.weekly_off.includes(d)?'checked':''}>${d}</label>`).join('')}</div></div>
-   <label class="chk" style="margin-bottom:14px"><input type="checkbox" id="s_l" ${s.liveness?'checked':''}><span>Ask for a head turn at the kiosk (stops photos being used)</span></label>
+   <div style="margin:16px 0"><label>Weekly off days</label><div class="days">${DAYS.map(d => `<label><input type="checkbox" value="${d}" ${s.weekly_off.includes(d) ? 'checked' : ''}>${d}</label>`).join('')}</div></div>
+   <label class="chk" style="margin-bottom:14px"><input type="checkbox" id="s_l" ${s.liveness ? 'checked' : ''}><span>Ask for a head turn at the kiosk (stops photos being used)</span></label>
    <div style="max-width:760px;margin-bottom:14px"><label for="s_b">Extra backup folder (optional, for example a USB drive or OneDrive folder)</label>
     <input id="s_b" value="${esc(s.backup_folder)}" placeholder="E:\\Backups"></div>
    <div id="s_msg" class="msg ok" hidden></div><button class="btn" id="s_save">Save settings</button>
@@ -243,19 +845,39 @@ async function loadSet(){
    <div class="form-grid"><div><label for="p_c">Current password</label><input id="p_c" type="password"></div>
    <div><label for="p_n">New password (8+ characters)</label><input id="p_n" type="password"></div></div>
    <div id="p_msg" class="msg ok" hidden></div><button class="btn" id="p_save" style="margin-top:10px">Change password</button>`;
-  $('#b_now').onclick=async()=>{const m=$('#b_msg');msg(m,'','ok');try{
-    const r=await api('/api/admin/backup',{method:'POST'});
-    msg(m,r.copy_error?('Backup saved, but '+r.copy_error):('Backup saved'+(r.copied_to?' and copied to '+r.copied_to:'')+'.'),r.copy_error?'warn':'ok');loadBackups()}catch(e){msg(m,e.message,'err')}};
-  loadBackups();loadHolidays();
-  $('#h_add').onclick=async()=>{try{msg($('#h_msg'),'','err');
-    await api('/api/admin/holidays',{method:'POST',body:{day:$('#h_d').value,name:$('#h_n').value}});$('#h_n').value='';loadHolidays()}catch(e){msg($('#h_msg'),e.message,'err')}};
-  $('#s_save').onclick=async()=>{try{
-    await api('/api/admin/settings',{method:'POST',body:{company_name:$('#s_c').value,office_start:$('#s_t').value,grace_minutes:+$('#s_g').value,
-      threshold:+$('#s_h').value,min_gap_minutes:+$('#s_m').value,weekly_off:[...document.querySelectorAll('.days input:checked')].map(i=>i.value),liveness:$('#s_l').checked,backup_folder:$('#s_b').value}});
-    msg($('#s_msg'),'Settings saved.','ok')}catch(e){msg($('#s_msg'),e.message,'err')}};
-  $('#p_save').onclick=async()=>{try{
-    await api('/api/admin/password',{method:'POST',body:{current:$('#p_c').value,new:$('#p_n').value}});
-    $('#p_c').value=$('#p_n').value='';msg($('#p_msg'),'Password changed.','ok')}catch(e){msg($('#p_msg'),e.message,'err')}};
-}
-show(['dash','emp','rep','fix','set'].includes(location.hash.slice(1))?location.hash.slice(1):'dash');
-</script></body></html>
+      $('#b_now').onclick = async () => {
+        const m = $('#b_msg'); msg(m, '', 'ok'); try {
+          const r = await api('/api/admin/backup', { method: 'POST' });
+          msg(m, r.copy_error ? ('Backup saved, but ' + r.copy_error) : ('Backup saved' + (r.copied_to ? ' and copied to ' + r.copied_to : '') + '.'), r.copy_error ? 'warn' : 'ok'); loadBackups()
+        } catch (e) { msg(m, e.message, 'err') }
+      };
+      loadBackups(); loadHolidays();
+      $('#h_add').onclick = async () => {
+        try {
+          msg($('#h_msg'), '', 'err');
+          await api('/api/admin/holidays', { method: 'POST', body: { day: $('#h_d').value, name: $('#h_n').value } }); $('#h_n').value = ''; loadHolidays()
+        } catch (e) { msg($('#h_msg'), e.message, 'err') }
+      };
+      $('#s_save').onclick = async () => {
+        try {
+          await api('/api/admin/settings', {
+            method: 'POST', body: {
+              company_name: $('#s_c').value, office_start: $('#s_t').value, grace_minutes: +$('#s_g').value,
+              threshold: +$('#s_h').value, min_gap_minutes: +$('#s_m').value, weekly_off: [...document.querySelectorAll('.days input:checked')].map(i => i.value), liveness: $('#s_l').checked, backup_folder: $('#s_b').value
+            }
+          });
+          msg($('#s_msg'), 'Settings saved.', 'ok')
+        } catch (e) { msg($('#s_msg'), e.message, 'err') }
+      };
+      $('#p_save').onclick = async () => {
+        try {
+          await api('/api/admin/password', { method: 'POST', body: { current: $('#p_c').value, new: $('#p_n').value } });
+          $('#p_c').value = $('#p_n').value = ''; msg($('#p_msg'), 'Password changed.', 'ok')
+        } catch (e) { msg($('#p_msg'), e.message, 'err') }
+      };
+    }
+    show(['dash', 'emp', 'rep', 'fix', 'set'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'dash');
+  </script>
+</body>
+
+</html>
