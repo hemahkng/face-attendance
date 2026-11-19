@@ -1,17 +1,25 @@
+/* FACENEX — Modern Workforce Attendance UI. Replace static/style.css with this. */
 :root {
-    --ink: #14232b;
-    --muted: #5b6b72;
-    --paper: #f4f5f2;
+    --ink: #172334;
+    --muted: #738096;
+    --paper: #f4f7fb;
     --card: #fff;
-    --line: #d9dcd6;
-    --teal: #0f5c57;
-    --teal-soft: #dcedea;
-    --amber: #a8610a;
-    --amber-soft: #faecd5;
-    --red: #a62929;
-    --red-soft: #f6dede;
-    --green: #2a7a3b;
-    --green-soft: #dff0e2
+    --line: #e5eaf1;
+    --nav: #111c2e;
+    --teal: #0d9488;
+    --teal-dark: #08776e;
+    --teal-soft: #e2f5f1;
+    --amber: #b66a13;
+    --amber-soft: #fff4df;
+    --red: #c2414b;
+    --red-soft: #fde9eb;
+    --green: #16804a;
+    --green-soft: #e3f6eb;
+    --blue-soft: #eaf0ff;
+    --purple-soft: #f0eaff;
+    --shadow-sm: 0 2px 8px rgba(22, 34, 52, .04);
+    --shadow-md: 0 12px 32px rgba(22, 34, 52, .08);
+    --radius: 14px
 }
 
 * {
@@ -20,7 +28,7 @@
 
 body {
     margin: 0;
-    font: 15px/1.5 "Segoe UI", system-ui, sans-serif;
+    font: 14px/1.55 "Inter", "Segoe UI", system-ui, sans-serif;
     color: var(--ink);
     background: var(--paper)
 }
@@ -29,45 +37,64 @@ h1,
 h2,
 h3 {
     margin: 0;
-    font-weight: 600;
-    letter-spacing: -.01em
+    font-weight: 700;
+    letter-spacing: -.025em
+}
+
+h1 {
+    font-size: 28px
+}
+
+h2 {
+    font-size: 24px
+}
+
+h3 {
+    font-size: 17px;
+    margin: 20px 0 10px
 }
 
 button,
 input,
-select {
+select,
+textarea {
     font: inherit;
     color: inherit
 }
 
 :focus-visible {
-    outline: 3px solid #e0a43a;
+    outline: 3px solid #80d8ce;
     outline-offset: 2px
 }
 
 .btn {
     background: var(--teal);
     color: #fff;
-    border: 0;
-    border-radius: 6px;
-    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    padding: 10px 16px;
     cursor: pointer;
-    font-weight: 600
+    font-weight: 650;
+    transition: .18s;
+    box-shadow: 0 2px 4px rgba(13, 148, 136, .12)
 }
 
 .btn:hover {
-    background: #0b4743
+    background: var(--teal-dark);
+    transform: translateY(-1px)
 }
 
 .btn:disabled {
     opacity: .5;
-    cursor: default
+    cursor: default;
+    transform: none
 }
 
 .btn.ghost {
-    background: transparent;
-    color: var(--teal);
-    border: 1px solid var(--teal)
+    background: #fff;
+    color: var(--teal-dark);
+    border-color: #c9e5e1;
+    box-shadow: none
 }
 
 .btn.ghost:hover {
@@ -75,85 +102,115 @@ select {
 }
 
 .btn.danger {
-    background: var(--red)
+    background: var(--red);
+    color: #fff
 }
 
 .btn.small {
-    padding: 5px 10px;
-    font-size: 13px
+    padding: 7px 11px;
+    font-size: 12.5px;
+    border-radius: 8px
 }
 
 input,
-select {
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 8px 10px;
+select,
+textarea {
+    border: 1px solid #d9e1ec;
+    border-radius: 9px;
+    padding: 10px 12px;
     background: #fff;
-    width: 100%
+    width: 100%;
+    transition: border-color .15s, box-shadow .15s
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #55b8ae;
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, .1);
+    outline: none
 }
 
 label {
     display: block;
-    font-size: 13px;
-    color: var(--muted);
-    margin-bottom: 4px
+    font-size: 12.5px;
+    color: #68758a;
+    font-weight: 600;
+    margin-bottom: 6px
 }
 
 .msg {
-    padding: 9px 12px;
-    border-radius: 6px;
-    margin: 10px 0;
-    font-size: 14px
+    padding: 11px 14px;
+    border-radius: 10px;
+    margin: 12px 0;
+    font-size: 13px;
+    border: 1px solid transparent
 }
 
 .msg.err {
     background: var(--red-soft);
-    color: var(--red)
+    color: #a52d39;
+    border-color: #f6cbd0
 }
 
 .msg.ok {
     background: var(--green-soft);
-    color: var(--green)
+    color: #176a3e;
+    border-color: #c5ead4
 }
 
 .msg.warn {
     background: var(--amber-soft);
-    color: var(--amber)
+    color: #9a5b11;
+    border-color: #f2d9aa
 }
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    overflow: hidden
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm)
 }
 
 th,
 td {
-    padding: 9px 12px;
+    padding: 12px 14px;
     text-align: left;
-    border-bottom: 1px solid var(--line);
-    font-size: 14px
+    border-bottom: 1px solid #edf0f5;
+    font-size: 13px;
+    vertical-align: middle
 }
 
 th {
-    background: #eceee9;
-    font-weight: 600;
-    color: var(--muted)
+    background: #f7f9fc;
+    font-weight: 700;
+    color: #67758b;
+    font-size: 11.5px;
+    letter-spacing: .045em;
+    text-transform: uppercase;
+    white-space: nowrap
 }
 
 tr:last-child td {
     border-bottom: 0
 }
 
+tbody tr:hover td {
+    background: #fafcff
+}
+
 .tag {
-    display: inline-block;
-    padding: 2px 9px;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
     border-radius: 99px;
-    font-size: 12.5px;
-    font-weight: 600
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap
 }
 
 .tag.Present,
@@ -174,105 +231,150 @@ tr:last-child td {
 
 .tag.OUT,
 .tag.Not {
-    background: #e6e9e4;
-    color: var(--muted)
+    background: #edf0f5;
+    color: #68758a
+}
+
+.tag.Leave {
+    background: var(--blue-soft);
+    color: #3152a8
 }
 
 .empty {
-    padding: 28px;
+    padding: 40px 24px;
     text-align: center;
     color: var(--muted);
     background: var(--card);
-    border: 1px dashed var(--line);
-    border-radius: 8px
+    border: 1px dashed #ccd6e2;
+    border-radius: var(--radius)
 }
 
-/* login */
 .center {
     min-height: 100vh;
     display: grid;
     place-items: center;
-    padding: 20px
+    padding: 24px
 }
 
 .panel {
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 28px;
+    border-radius: 18px;
+    padding: 32px;
     width: 100%;
-    max-width: 380px
+    max-width: 420px;
+    box-shadow: var(--shadow-md)
 }
 
 .panel h1 {
-    font-size: 22px;
-    margin-bottom: 4px
+    font-size: 24px;
+    margin-bottom: 6px
 }
 
 .panel p {
     color: var(--muted);
-    margin: 0 0 18px
+    margin: 0 0 22px
 }
 
-/* admin */
+/* Sidebar navigation */
 .top {
-    background: var(--ink);
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 248px;
+    height: 100vh;
+    background: var(--nav);
     color: #fff;
     display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0 20px;
-    flex-wrap: wrap
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 22px 14px;
+    overflow-y: auto;
+    z-index: 50
 }
 
 .top b {
-    font-size: 16px;
-    margin-right: 18px;
-    padding: 14px 0
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: .06em;
+    margin: 0 0 22px;
+    padding: 12px 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .09);
+    color: #fff
+}
+
+.top b::before {
+    content: "F";
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin-right: 10px;
+    vertical-align: middle;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #12b8a6, #08776e);
+    color: white;
+    font-size: 17px;
+    letter-spacing: 0
 }
 
 .top a,
 .top button.tab {
-    color: #c9d6da;
-    background: none;
+    color: #aab8cc;
+    background: transparent;
     border: 0;
-    padding: 15px 12px;
+    border-radius: 9px;
+    padding: 12px 14px;
     cursor: pointer;
     text-decoration: none;
-    border-bottom: 3px solid transparent;
-    font-size: 15px
+    border-bottom: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-align: left;
+    transition: .15s
+}
+
+.top a:hover,
+.top button.tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, .07)
 }
 
 .top .tab.on {
     color: #fff;
-    border-bottom-color: #e0a43a
+    background: rgba(13, 148, 136, .2);
+    box-shadow: inset 3px 0 0 #22c5b4
 }
 
 .top .sp {
-    flex: 1
+    flex: 1;
+    min-height: 16px
 }
 
 main {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 24px 20px 60px
+    max-width: none;
+    margin: 0 0 0 248px;
+    padding: 34px clamp(22px, 4vw, 54px) 64px;
+    min-height: 100vh
 }
 
 .head {
     display: flex;
     justify-content: space-between;
-    align-items: end;
-    gap: 12px;
+    align-items: center;
+    gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 16px
+    margin-bottom: 22px
 }
 
 .head h2 {
-    font-size: 21px
+    font-size: 25px
 }
 
 .head small {
-    color: var(--muted)
+    color: var(--muted);
+    display: block;
+    margin-top: 4px
 }
 
 .tools {
@@ -283,92 +385,134 @@ main {
 }
 
 .tools div {
-    min-width: 140px
+    min-width: 145px
 }
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px
+    grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+    gap: 14px;
+    margin: 0 0 24px
 }
 
 .stat {
+    position: relative;
     background: var(--card);
     border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 16px;
-    border-left: 5px solid var(--teal)
+    border-radius: 14px;
+    padding: 18px 20px;
+    border-left: 0;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden
 }
 
-.stat.late {
-    border-left-color: var(--amber)
+.stat::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--teal)
 }
 
-.stat.abs {
-    border-left-color: var(--red)
+.stat.late::before {
+    background: #e3a137
+}
+
+.stat.abs::before {
+    background: #d85c68
 }
 
 .stat span {
-    font-size: 30px;
-    font-weight: 700;
+    font-size: 32px;
+    font-weight: 800;
     display: block;
-    line-height: 1.1
+    line-height: 1.1;
+    letter-spacing: -.04em;
+    margin-bottom: 8px
 }
 
 .stat small {
-    color: var(--muted)
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 12.5px
 }
 
 .scroll {
-    overflow-x: auto
+    overflow-x: auto;
+    border-radius: 12px
 }
 
 .form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 14px;
-    max-width: 760px
+    gap: 16px;
+    max-width: 900px
 }
 
 .days {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap
 }
 
 .days label {
-    display: flex;
-    gap: 5px;
+    display: inline-flex;
+    gap: 6px;
     align-items: center;
     color: var(--ink);
-    font-size: 14px;
-    margin: 0
+    font-size: 13px;
+    margin: 0;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px
 }
 
-.days input {
-    width: auto
+.days input,
+.chk input {
+    width: auto;
+    accent-color: var(--teal)
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px
+}
+
+.chk {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    color: var(--ink);
+    font-size: 13px
+}
+
+.chk input {
+    margin-top: 4px
 }
 
 dialog {
-    border: 0;
-    border-radius: 10px;
-    padding: 22px;
-    width: min(560px, 94vw);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, .35)
+    border: 1px solid #e1e7ef;
+    border-radius: 16px;
+    padding: 24px;
+    width: min(600px, 94vw);
+    box-shadow: 0 24px 70px rgba(7, 15, 27, .35)
 }
 
 dialog::backdrop {
-    background: rgba(10, 20, 25, .6)
+    background: rgba(11, 19, 32, .6);
+    backdrop-filter: blur(3px)
 }
 
 .cam {
     position: relative;
-    background: #000;
-    border-radius: 8px;
+    background: #05080c;
+    border-radius: 12px;
     overflow: hidden;
     aspect-ratio: 4/3;
-    margin: 12px 0
+    margin: 14px 0
 }
 
 .cam video {
@@ -383,165 +527,275 @@ dialog::backdrop {
     left: 0;
     right: 0;
     bottom: 0;
-    padding: 10px;
-    background: rgba(0, 0, 0, .6);
+    padding: 12px;
+    background: rgba(0, 0, 0, .65);
     color: #fff;
     text-align: center;
-    font-weight: 600
+    font-weight: 650
 }
-
-.row {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    margin-top: 12px
-}
-
-.chk {
-    display: flex;
-    gap: 8px;
-    align-items: flex-start;
-    color: var(--ink);
-    font-size: 14px
-}
-
-.chk input {
-    width: auto;
-    margin-top: 4px
-}
-
-.tag.Leave {
-    background: #dde9f7;
-    color: #25507f
-}
-
-/* ================================
-   Attendance Calendar
-================================ */
 
 .cal-calendar {
     display: grid;
     grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 16px;
+    gap: 9px;
+    margin-top: 18px
 }
 
 .cal-weekday {
     text-align: center;
-    font-weight: 700;
-    padding: 12px 4px;
+    font-weight: 800;
+    padding: 10px 4px;
     color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase
 }
 
 .cal-cell {
-    min-height: 105px;
-    padding: 10px;
-    border: 1px solid var(--border, #ddd);
-    border-radius: 10px;
-    background: var(--card, #fff);
-    box-sizing: border-box;
+    min-height: 120px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--card);
+    transition: transform .16s, box-shadow .16s;
+    box-shadow: var(--shadow-sm)
+}
+
+.cal-cell:not(.cal-empty):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md)
 }
 
 .cal-empty {
     background: transparent;
-    border: none;
+    border: 0;
+    box-shadow: none
+}
+
+.cal-empty:hover {
+    transform: none;
+    box-shadow: none
 }
 
 .cal-day {
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 12px;
+    font-weight: 800;
+    font-size: 14px;
+    margin-bottom: 12px
 }
 
 .cal-status {
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 11.5px;
+    font-weight: 750;
+    line-height: 1.4
 }
 
 .cal-hours {
-    font-size: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
     margin-top: 8px;
-    opacity: 0.8;
+    opacity: .85
 }
 
-/* Attendance status colors */
-
 .cal-present {
-    background: #e8f7ed;
-    border-color: #a6dfb8;
-    color: #176b35;
+    background: #e2f6e9;
+    border-color: #c4e8d1;
+    color: #17663c
 }
 
 .cal-late {
-    background: #fff4df;
-    border-color: #f0d08a;
-    color: #946000;
-}
-
-.cal-absent {
-    background: #fdeaea;
-    border-color: #f0b5b5;
-    color: #a12626;
+    background: #fff3d9;
+    border-color: #f1dcab;
+    color: #8a5a12
 }
 
 .cal-leave {
-    background: #eaf2ff;
-    border-color: #b5cdf5;
-    color: #245a9b;
+    background: #eaf1ff;
+    border-color: #d3e0ff;
+    color: #3152a8
+}
+
+.cal-absent {
+    background: #ffeded;
+    border-color: #f5cccc;
+    color: #a13b3b
 }
 
 .cal-other {
     background: #f0eaff;
-    border-color: #d0b9f5;
-    color: #7042a5;
+    border-color: #ded1ff;
+    color: #6943b5
 }
 
 .cal-none {
-    background: var(--card, #fff);
+    background: #fff;
+    border-color: #e5eaf1;
+    color: #566174
 }
 
-/* Mobile responsiveness */
+.cal-holiday {
+    background: #fae9ff;
+    border-color: #ebd0f4;
+    color: #7a318c
+}
 
-@media (max-width: 700px) {
-    .cal-calendar {
+.cal-weekoff {
+    background: #edf0f5;
+    border-color: #dce2eb;
+    color: #566174
+}
+
+@media(max-width:900px) {
+    .top {
+        position: sticky;
+        inset: 0 0 auto;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+        padding: 8px 10px;
         gap: 4px;
+        overflow-x: auto
+    }
+
+    .top b {
+        margin: 0 8px 0 0;
+        padding: 6px 8px;
+        border-bottom: 0;
+        flex: 0 0 auto
+    }
+
+    .top b::before {
+        width: 30px;
+        height: 30px
+    }
+
+    .top a,
+    .top button.tab {
+        padding: 10px 11px;
+        white-space: nowrap;
+        font-size: 12.5px
+    }
+
+    .top .sp {
+        display: none
+    }
+
+    main {
+        margin: 0;
+        padding: 26px 20px 50px
+    }
+}
+
+@media(max-width:600px) {
+    body {
+        font-size: 13px
+    }
+
+    main {
+        padding: 20px 13px 40px
+    }
+
+    .head {
+        align-items: flex-start
+    }
+
+    .head h2 {
+        font-size: 21px
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px
+    }
+
+    .stat {
+        padding: 15px
+    }
+
+    .stat span {
+        font-size: 27px
+    }
+
+    .tools {
+        width: 100%
+    }
+
+    .tools div {
+        min-width: 120px;
+        flex: 1 1 120px
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr
+    }
+
+    .cal-calendar {
+        gap: 4px
     }
 
     .cal-cell {
-        min-height: 78px;
-        padding: 5px;
-        border-radius: 6px;
+        min-height: 82px;
+        padding: 7px 5px;
+        border-radius: 8px
     }
 
     .cal-day {
         font-size: 12px;
-        margin-bottom: 6px;
+        margin-bottom: 7px
     }
 
-    .cal-status {
-        font-size: 10px;
-    }
-
+    .cal-status,
     .cal-hours {
-        font-size: 10px;
+        font-size: 9.5px;
+        line-height: 1.25
     }
 
     .cal-weekday {
-        font-size: 11px;
-        padding: 6px 2px;
+        font-size: 9.5px;
+        padding: 6px 1px
+    }
+
+    th,
+    td {
+        padding: 9px 10px;
+        font-size: 12px
+    }
+
+    .panel {
+        padding: 25px
     }
 }
 
-/* Holiday and Weekly Off */
+@media(max-width:400px) {
+    .top b {
+        font-size: 14px
+    }
 
-.cal-holiday {
-    background: #ffe8f0;
-    border-color: #f4b8d0;
-    color: #9d2858;
-}
+    .top b::before {
+        width: 26px;
+        height: 26px;
+        margin-right: 6px
+    }
 
-.cal-weekoff {
-    background: #eeeeee;
-    border-color: #cccccc;
-    color: #555555;
+    .top a,
+    .top button.tab {
+        padding: 9px 8px;
+        font-size: 11px
+    }
+
+    .cal-cell {
+        min-height: 68px;
+        padding: 5px 3px
+    }
+
+    .cal-status,
+    .cal-hours {
+        font-size: 8.5px
+    }
+
+    .cal-weekday {
+        font-size: 9px
+    }
 }

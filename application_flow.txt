@@ -957,7 +957,7 @@ def save_settings(b: SettingsBody):
         if problem:
             raise HTTPException(400, f"Backup folder: {problem}")
     with dbm.db() as con:
-        for k, v in [("company_name", b.company_name.strip() or "My Company"), ("office_start", b.office_start),
+        for k, v in [("company_name", b.company_name.strip() or "FACENEX"), ("office_start", b.office_start),
                      ("grace_minutes", b.grace_minutes), ("threshold", b.threshold),
                      ("min_gap_minutes", b.min_gap_minutes), ("weekly_off", ",".join(b.weekly_off)),
                      ("liveness", "1" if b.liveness else "0"), ("backup_folder", folder)]:
@@ -1218,7 +1218,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "attendance.db"
 
 DEFAULT_SETTINGS = {
-    "company_name": "My Company",
+    "company_name": "FACENEX",
     "office_start": "09:30",
     "grace_minutes": "10",
     "threshold": "0.45",

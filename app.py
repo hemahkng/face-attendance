@@ -758,7 +758,7 @@ def save_settings(b: SettingsBody):
             raise HTTPException(400, f"Backup folder: {problem}")
     with dbm.db() as con:
         for k, v in [
-            ("company_name", b.company_name.strip() or "My Company"),
+            ("company_name", b.company_name.strip() or "FACENEX"),
             ("office_start", b.office_start),
             ("grace_minutes", b.grace_minutes),
             ("threshold", b.threshold),

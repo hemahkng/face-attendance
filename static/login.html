@@ -1,19 +1,683 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin login</title><link rel="stylesheet" href="/static/style.css"></head>
-<body><div class="center"><div class="panel">
-<h1>Admin login</h1><p>Sign in to manage employees and reports.</p>
-<label for="pw">Password</label><input id="pw" type="password" autofocus autocomplete="current-password">
-<div id="err" class="msg err" hidden></div>
-<div style="margin-top:14px;display:flex;gap:10px;align-items:center">
-<button class="btn" id="go">Sign in</button><a href="/kiosk">Open kiosk</a></div>
-</div></div>
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Login | Face Attendance</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      min-height: 100vh;
+      background: #f4f7fb;
+      color: #172033;
+    }
+
+    .login-wrapper {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+    }
+
+    /* LEFT SIDE */
+
+    .brand-panel {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, #0c1830, #142b49 55%, #124c63);
+      color: white;
+      padding: 55px 60px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .brand-panel::before {
+      content: "";
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.06);
+      top: -170px;
+      right: -170px;
+    }
+
+    .brand-panel::after {
+      content: "";
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,.06);
+      bottom: -130px;
+      left: -100px;
+    }
+
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      z-index: 1;
+    }
+
+    .brand-logo {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(45, 212, 191, .14);
+      border: 1px solid rgba(45, 212, 191, .3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo svg {
+      width: 26px;
+      height: 26px;
+      stroke: #43dfc3;
+    }
+
+    .brand-name {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
+
+    .brand-subtitle {
+      font-size: 12px;
+      color: #a9bdd3;
+      margin-top: 4px;
+    }
+
+    .brand-content {
+      position: relative;
+      z-index: 1;
+      max-width: 500px;
+      margin: 50px auto;
+      width: 100%;
+    }
+
+    .brand-content h2 {
+      font-size: clamp(32px, 4vw, 48px);
+      line-height: 1.2;
+      letter-spacing: -1.5px;
+      margin-bottom: 22px;
+    }
+
+    .brand-content h2 span {
+      color: #43dfc3;
+    }
+
+    .brand-content p {
+      color: #b7c7d9;
+      line-height: 1.8;
+      font-size: 15px;
+      max-width: 430px;
+    }
+
+    /* FACE VISUAL */
+
+    .visual-area {
+      margin-top: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 250px;
+      position: relative;
+    }
+
+    .face-card {
+      width: 230px;
+      height: 230px;
+      background: rgba(255,255,255,.045);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      backdrop-filter: blur(10px);
+    }
+
+    .face-frame {
+      width: 130px;
+      height: 155px;
+      position: relative;
+      border: 2px solid #3fd7bd;
+      border-radius: 65px 65px 55px 55px;
+      opacity: .9;
+    }
+
+    .face-frame::before {
+      content: "";
+      position: absolute;
+      top: 48px;
+      left: 31px;
+      width: 64px;
+      height: 28px;
+      border-bottom: 2px solid #3fd7bd;
+      border-radius: 50%;
+    }
+
+    .face-frame::after {
+      content: "";
+      position: absolute;
+      bottom: 30px;
+      left: 40px;
+      width: 48px;
+      height: 20px;
+      border-bottom: 2px solid #3fd7bd;
+      border-radius: 50%;
+    }
+
+    .face-eye {
+      position: absolute;
+      top: 56px;
+      width: 8px;
+      height: 8px;
+      background: #3fd7bd;
+      border-radius: 50%;
+    }
+
+    .face-eye.left {
+      left: 38px;
+    }
+
+    .face-eye.right {
+      right: 38px;
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 25px;
+      right: 25px;
+      height: 2px;
+      top: 50%;
+      background: linear-gradient(90, transparent, #43dfc3, transparent);
+      box-shadow: 0 0 15px rgba(67,223,195,.6);
+    }
+
+    .floating-badge {
+      position: absolute;
+      padding: 11px 15px;
+      border-radius: 12px;
+      background: #fff;
+      color: #15243b;
+      box-shadow: 0 12px 35px rgba(0,0,0,.2);
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .floating-badge svg {
+      width: 17px;
+      height: 17px;
+      stroke: #0f9c83;
+    }
+
+    .badge-top {
+      top: 10px;
+      right: -35px;
+    }
+
+    .badge-bottom {
+      bottom: 10px;
+      left: -35px;
+    }
+
+    .brand-footer {
+      z-index: 1;
+      font-size: 12px;
+      color: #8298b1;
+    }
+
+    /* RIGHT SIDE */
+
+    .form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: #f7f9fc;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .mobile-brand {
+      display: none;
+    }
+
+    .welcome-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #149c87;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+    }
+
+    .login-box h1 {
+      font-size: 36px;
+      letter-spacing: -1px;
+      color: #16233a;
+      margin-bottom: 12px;
+    }
+
+    .login-description {
+      color: #7b8799;
+      font-size: 14px;
+      line-height: 1.7;
+      margin-bottom: 38px;
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #37445a;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      height: 54px;
+      padding: 0 48px 0 16px;
+      border: 1px solid #dce3ed;
+      border-radius: 12px;
+      background: white;
+      color: #1c2940;
+      outline: none;
+      font-size: 15px;
+      transition: .2s;
+    }
+
+    .input-wrap input::placeholder {
+      color: #a6afbd;
+    }
+
+    .input-wrap input:focus {
+      border-color: #19a990;
+      box-shadow: 0 0 0 4px rgba(25,169,144,.1);
+    }
+
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      transform: translateY(-50%);
+      border: none;
+      background: none;
+      color: #8c98aa;
+      cursor: pointer;
+      padding: 5px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .password-toggle:hover {
+      color: #119b83;
+    }
+
+    .msg {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      background: #fff1f1;
+      color: #bd3434;
+      border: 1px solid #ffd7d7;
+    }
+
+    .msg[hidden] {
+      display: none;
+    }
+
+    .login-button {
+      width: 100%;
+      height: 54px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #13a98c, #0b897d);
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(13,156,132,.2);
+      transition: .2s;
+      margin-top: 5px;
+    }
+
+    .login-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(13,156,132,.28);
+    }
+
+    .login-button:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .login-bottom {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 13px;
+      color: #8a96a8;
+    }
+
+    .kiosk-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-top: 28px;
+      text-decoration: none;
+      color: #169a85;
+      font-size: 13px;
+      font-weight: 600;
+      transition: .2s;
+    }
+
+    .kiosk-link:hover {
+      color: #087967;
+    }
+
+    .secure-note {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 7px;
+      color: #9aa5b5;
+      font-size: 11px;
+      margin-top: 22px;
+    }
+
+    .secure-note svg {
+      width: 14px;
+      height: 14px;
+      stroke: #8ea0b2;
+    }
+
+    /* RESPONSIVE */
+
+    @media(max-width: 900px) {
+      .login-wrapper {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-panel {
+        display: none;
+      }
+
+      .form-panel {
+        min-height: 100vh;
+        padding: 28px;
+      }
+
+      .mobile-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 40px;
+      }
+
+      .mobile-brand .brand-logo {
+        background: #e0f7f2;
+        border-color: #c5eee3;
+      }
+
+      .mobile-brand .brand-logo svg {
+        stroke: #119b83;
+      }
+
+      .mobile-brand .brand-name {
+        color: #18253b;
+      }
+
+      .mobile-brand .brand-subtitle {
+        color: #8793a5;
+      }
+    }
+
+    @media(max-width: 480px) {
+      .form-panel {
+        padding: 24px;
+      }
+
+      .login-box h1 {
+        font-size: 30px;
+      }
+
+      .login-description {
+        margin-bottom: 28px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="login-wrapper">
+
+  <!-- LEFT BRAND SECTION -->
+  <section class="brand-panel">
+
+    <div class="brand-header">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M7 5l1-2h8l1 2"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Face Attendance</div>
+        <div class="brand-subtitle">Smart Workforce Management</div>
+      </div>
+    </div>
+
+    <div class="brand-content">
+      <h2>Attendance made<br><span>simple & smart.</span></h2>
+      <p>
+        Manage your workforce, monitor attendance and access
+        employee reports — all from one intelligent dashboard.
+      </p>
+
+      <div class="visual-area">
+        <div class="face-card">
+          <div class="face-frame">
+            <div class="face-eye left"></div>
+            <div class="face-eye right"></div>
+          </div>
+          <div class="scan-line"></div>
+
+          <div class="floating-badge badge-top">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <path d="M20 6L9 17l-5-5"></path>
+            </svg>
+            Face detected
+          </div>
+
+          <div class="floating-badge badge-bottom">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+              <path d="M7 11V7a5 5 0 0110 0v4"></path>
+            </svg>
+            Secure attendance
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-footer">
+      © 2026 Face Attendance System
+    </div>
+
+  </section>
+
+  <!-- RIGHT LOGIN SECTION -->
+  <section class="form-panel">
+    <div class="login-box">
+
+      <!-- Mobile brand -->
+      <div class="mobile-brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+            <rect x="3" y="5" width="18" height="14" rx="3"></rect>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M7 5l1-2h8l1 2"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">Face Attendance</div>
+          <div class="brand-subtitle">Smart Workforce Management</div>
+        </div>
+      </div>
+
+      <div class="welcome-label">Admin Portal</div>
+
+      <h1>Welcome back</h1>
+
+      <p class="login-description">
+        Sign in to manage employees, monitor attendance
+        and access reports.
+      </p>
+
+      <form id="loginForm">
+
+        <div class="form-group">
+          <label for="pw">Administrator password</label>
+
+          <div class="input-wrap">
+            <input
+              id="pw"
+              type="password"
+              placeholder="Enter your password"
+              autofocus
+              autocomplete="current-password"
+              required
+            >
+
+            <button type="button" class="password-toggle" id="togglePw">
+              Show
+            </button>
+          </div>
+        </div>
+
+        <div id="err" class="msg" hidden></div>
+
+        <button class="login-button" id="go" type="submit">
+          Sign in to Dashboard
+        </button>
+
+      </form>
+
+      <div class="login-bottom">
+        Administrator access only
+      </div>
+
+      <div style="text-align:center">
+        <a href="/kiosk" class="kiosk-link">
+          Open attendance kiosk →
+        </a>
+      </div>
+
+      <div class="secure-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+          <path d="M8 10V7a4 4 0 018 0v3"></path>
+        </svg>
+        Secure administrator login
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
 <script>
-const pw=document.getElementById('pw'),err=document.getElementById('err');
-async function go(){
-  err.hidden=true;
-  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw.value})});
-  if(r.ok){location.href='/admin';return}
-  const d=await r.json().catch(()=>({}));err.textContent=d.detail||'Sign in failed.';err.hidden=false;
+const pw = document.getElementById('pw');
+const err = document.getElementById('err');
+const goBtn = document.getElementById('go');
+const loginForm = document.getElementById('loginForm');
+const togglePw = document.getElementById('togglePw');
+
+async function go() {
+  err.hidden = true;
+
+  if (!pw.value.trim()) {
+    err.textContent = 'Please enter your password.';
+    err.hidden = false;
+    pw.focus();
+    return;
+  }
+
+  goBtn.disabled = true;
+  goBtn.textContent = 'Signing in...';
+
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password: pw.value
+      })
+    });
+
+    if (r.ok) {
+      location.href = '/admin';
+      return;
+    }
+
+    const d = await r.json().catch(() => ({}));
+    err.textContent = d.detail || 'Sign in failed. Please check your password.';
+    err.hidden = false;
+
+  } catch (e) {
+    err.textContent = 'Unable to connect to the server. Please try again.';
+    err.hidden = false;
+  }
+
+  goBtn.disabled = false;
+  goBtn.textContent = 'Sign in to Dashboard';
 }
-document.getElementById('go').onclick=go;pw.onkeydown=e=>{if(e.key==='Enter')go()};
-</script></body></html>
+
+loginForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  go();
+});
+
+togglePw.addEventListener('click', function() {
+  const visible = pw.type === 'password';
+
+  pw.type = visible ? 'text' : 'password';
+  togglePw.textContent = visible ? 'Hide' : 'Show';
+});
+</script>
+
+</body>
+</html>
