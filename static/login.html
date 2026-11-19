@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin login</title><link rel="stylesheet" href="/static/style.css"></head>
+<body><div class="center"><div class="panel">
+<h1>Admin login</h1><p>Sign in to manage employees and reports.</p>
+<label for="pw">Password</label><input id="pw" type="password" autofocus autocomplete="current-password">
+<div id="err" class="msg err" hidden></div>
+<div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+<button class="btn" id="go">Sign in</button><a href="/kiosk">Open kiosk</a></div>
+</div></div>
+<script>
+const pw=document.getElementById('pw'),err=document.getElementById('err');
+async function go(){
+  err.hidden=true;
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw.value})});
+  if(r.ok){location.href='/admin';return}
+  const d=await r.json().catch(()=>({}));err.textContent=d.detail||'Sign in failed.';err.hidden=false;
+}
+document.getElementById('go').onclick=go;pw.onkeydown=e=>{if(e.key==='Enter')go()};
+</script></body></html>

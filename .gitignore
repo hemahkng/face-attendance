@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+attendance.db
+*.db
+secret.key
+backups/
+logs/
+.insightface/

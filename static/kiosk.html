@@ -1,0 +1,57 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attendance kiosk</title>
+<style>
+:root{--teal:#0f5c57;--ink:#0b1c20}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--ink);color:#fff;font:16px/1.4 "Segoe UI",system-ui,sans-serif;display:grid;place-items:center;padding:16px}
+.wrap{width:min(920px,100%);display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:center}
+.cam{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:4/3;border:4px solid #26474c;transition:border-color .2s}
+.cam video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam.challenge{border-color:#4aa3df}.cam.marked{border-color:#3fb870}.cam.unknown{border-color:#d9534f}.cam.already{border-color:#e0a43a}
+.clock{font-size:64px;font-weight:300;letter-spacing:-.02em;line-height:1}
+.date{color:#9fb4b8;margin:6px 0 26px}
+.status{min-height:120px;border-radius:12px;padding:18px 20px;background:#14303a}
+.status h1{margin:0 0 4px;font-size:26px;font-weight:600}.status p{margin:0;color:#bcd0d3}
+.status.challenge{background:#12384f}.status.marked{background:#17402b}.status.unknown{background:#4a2223}.status.already{background:#4a3a18}
+.foot{margin-top:18px;font-size:13px}.foot a{color:#9fb4b8}
+@media(max-width:760px){.wrap{grid-template-columns:1fr}.clock{font-size:48px}}
+</style></head>
+<body><div class="wrap">
+<div class="cam" id="cam"><video id="v" autoplay playsinline muted></video></div>
+<div>
+  <div class="clock" id="clock">--:--</div><div class="date" id="date"></div>
+  <div class="status" id="status"><h1>Starting camera...</h1><p>Allow camera access when the browser asks.</p></div>
+  <div class="foot"><a href="/login">Admin</a></div>
+</div></div>
+<canvas id="c" width="640" height="480" hidden></canvas>
+<script>
+const v=document.getElementById('v'),cam=document.getElementById('cam'),st=document.getElementById('status'),c=document.getElementById('c');
+function tick(){const d=new Date();clock.textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+ date.textContent=d.toLocaleDateString([], {weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+setInterval(tick,1000);tick();
+function show(cls,title,text){cam.className='cam '+cls;st.className='status '+cls;
+ st.innerHTML='';const h=document.createElement('h1'),p=document.createElement('p');h.textContent=title;p.textContent=text||'';st.append(h,p)}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function loop(){
+  const ctx=c.getContext('2d');
+  while(true){
+    try{
+      ctx.drawImage(v,0,0,640,480);
+      const r=await fetch('/api/recognize',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({image:c.toDataURL('image/jpeg',0.8)})});
+      const d=await r.json();
+      if(d.status==='marked'){show('marked','Checked '+d.event,d.message);await sleep(4000);show('','Ready','Look at the camera to check in or out.')}
+      else if(d.status==='already'){show('already','Already marked',d.message);await sleep(3500)}
+      else if(d.status==='unknown'){show('unknown','Not recognised','Try again, or ask your admin to enrol you.');await sleep(1200)}
+      else if(d.status==='verifying'){show('','Hold still',d.message)}
+      else if(d.status==='face_front'){show('','Face the camera',d.message)}
+      else if(d.status==='challenge'){show('challenge','Liveness check',d.message)}
+      else{show('','Ready',d.message||'Look at the camera.')}
+    }catch(e){show('unknown','Cannot reach the server','Check that the attendance server is running.');await sleep(2000)}
+    await sleep(350);
+  }
+}
+navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'},audio:false})
+ .then(s=>{v.srcObject=s;v.onloadedmetadata=()=>{show('','Ready','Look at the camera to check in or out.');loop()}})
+ .catch(()=>show('unknown','Camera blocked','Allow camera access for this site in the browser, then reload. Use http://localhost:8000.'));
+</script></body></html>
