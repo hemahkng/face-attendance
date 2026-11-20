@@ -28,6 +28,14 @@ import reports
 BASE = Path(__file__).resolve().parent
 STATIC = BASE / "static"
 
+# Face recognition is enabled locally by default.
+# Set FACE_ENGINE_ENABLED=0 on cloud hosting (Render).
+FACE_ENGINE_ENABLED = os.environ.get("FACE_ENGINE_ENABLED", "1").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
 EMB_BYTES = 512 * 4
 DUPLICATE_SIM = 0.60  # same face enrolled under another ID
 write_lock = threading.Lock()
@@ -114,10 +122,14 @@ async def lifespan(app):
 
     backup.start_scheduler()
 
-    print("Loading face model (first run downloads ~300 MB)...")
-    engine.warm_up()
+    if FACE_ENGINE_ENABLED:
+        print("Loading face recognition model...")
+        engine.warm_up()
+        print("Face recognition model ready.")
+    else:
+        print("Face recognition disabled on this server.")
 
-    print("Ready. Open http://localhost:8000")
+    print("Application ready.")
     yield
 
 
@@ -288,6 +300,11 @@ def _mark(emp_id, name, min_gap):
 
 @app.post("/api/recognize")
 def recognize(body: FrameBody):
+    if not FACE_ENGINE_ENABLED:
+        raise HTTPException(
+            status_code=503, detail="Face recognition is disabled on this server."
+        )
+
     img = engine.decode_image(body.image)
 
     if img is None:
@@ -436,6 +453,11 @@ def list_employees():
 
 @app.post("/api/admin/employees", dependencies=[Depends(require_admin)])
 def enroll(body: EnrollBody):
+    if not FACE_ENGINE_ENABLED:
+        raise HTTPException(
+            status_code=503, detail="Face enrollment is disabled on this server."
+        )
+
     emp_id = body.emp_id.strip()
     name = body.name.strip()
 
