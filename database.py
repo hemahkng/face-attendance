@@ -1,9 +1,8 @@
-import sqlite3
 from contextlib import contextmanager
-from pathlib import Path
+from sqlalchemy import text
+from db_connection import engine
+from models import Base
 
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "attendance.db"
 
 DEFAULT_SETTINGS = {
     "company_name": "FACENEX",
@@ -17,63 +16,116 @@ DEFAULT_SETTINGS = {
 }
 
 
+class CompatRow(dict):
+    """Supports both row['column'] and row[0] access."""
+
+    def __init__(self, mapping, values):
+        super().__init__(mapping)
+        self._values = list(values)
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        return super().__getitem__(key)
+
+
+class CompatResult:
+    """Small compatibility wrapper around SQLAlchemy Result."""
+
+    def __init__(self, result):
+        self.result = result
+
+    def _convert(self, row):
+        if row is None:
+            return None
+        mapping = row._mapping
+        return CompatRow(mapping, row)
+
+    def fetchone(self):
+        return self._convert(self.result.fetchone())
+
+    def fetchall(self):
+        return [self._convert(row) for row in self.result.fetchall()]
+
+    def __iter__(self):
+        for row in self.result:
+            yield self._convert(row)
+
+
+class CompatConnection:
+    """Allows existing SQLite-style queries to run through SQLAlchemy."""
+
+    def __init__(self, connection):
+        self.connection = connection
+
+    def execute(self, sql, params=None):
+        sql = sql.strip()
+
+        if params is None:
+            params = {}
+
+        # Convert SQLite-style positional '?' placeholders
+        # to SQLAlchemy named bind parameters.
+        if isinstance(params, (tuple, list)):
+            bind_params = {}
+            index = 0
+
+            def replace_placeholder(_match):
+                nonlocal index
+                name = f"p{index}"
+                bind_params[name] = params[index]
+                index += 1
+                return f":{name}"
+
+            import re
+
+            sql = re.sub(r"\?", replace_placeholder, sql)
+            params = bind_params
+
+        result = self.connection.execute(text(sql), params)
+        return CompatResult(result)
+
+
 @contextmanager
 def db():
-    con = sqlite3.connect(DB_PATH, timeout=10)
-    con.row_factory = sqlite3.Row
-    try:
-        yield con
-        con.commit()
-    finally:
-        con.close()
+    """Open a PostgreSQL transaction."""
+    with engine.begin() as connection:
+        yield CompatConnection(connection)
 
 
 def init_db():
+    """Create database tables and insert missing default settings."""
+    Base.metadata.create_all(engine)
+
     with db() as con:
-        con.execute("""CREATE TABLE IF NOT EXISTS employees (
-            emp_id TEXT PRIMARY KEY, name TEXT NOT NULL, embedding BLOB NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
-        cols = {r["name"] for r in con.execute("PRAGMA table_info(employees)")}
-        if "department" not in cols:
-            con.execute("ALTER TABLE employees ADD COLUMN department TEXT DEFAULT ''")
-        if "active" not in cols:
-            con.execute("ALTER TABLE employees ADD COLUMN active INTEGER DEFAULT 1")
-        con.execute("""CREATE TABLE IF NOT EXISTS attendance (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, emp_id TEXT NOT NULL, name TEXT NOT NULL,
-            timestamp TEXT NOT NULL, date TEXT NOT NULL, event TEXT NOT NULL)""")
-        acols = {r["name"] for r in con.execute("PRAGMA table_info(attendance)")}
-        for col, ddl in (
-            ("source", "TEXT DEFAULT 'kiosk'"),
-            ("note", "TEXT DEFAULT ''"),
-            ("voided", "INTEGER DEFAULT 0"),
-        ):
-            if col not in acols:
-                con.execute(f"ALTER TABLE attendance ADD COLUMN {col} {ddl}")
-        con.execute("CREATE INDEX IF NOT EXISTS idx_att ON attendance(date, emp_id)")
-        con.execute("""CREATE TABLE IF NOT EXISTS leaves (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, emp_id TEXT NOT NULL, day TEXT NOT NULL,
-            type TEXT NOT NULL, note TEXT DEFAULT '', UNIQUE (emp_id, day))""")
-        con.execute(
-            "CREATE TABLE IF NOT EXISTS holidays (day TEXT PRIMARY KEY, name TEXT NOT NULL)"
-        )
-        con.execute(
-            "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)"
-        )
-        for k, v in DEFAULT_SETTINGS.items():
+        for key, value in DEFAULT_SETTINGS.items():
             con.execute(
-                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v)
+                """
+                INSERT INTO settings (key, value)
+                VALUES (?, ?)
+                ON CONFLICT (key) DO NOTHING
+                """,
+                (key, value),
             )
 
 
 def get_settings(con):
-    s = dict(DEFAULT_SETTINGS)
-    s.update(
-        {r["key"]: r["value"] for r in con.execute("SELECT key, value FROM settings")}
-    )
-    return s
+    settings = dict(DEFAULT_SETTINGS)
+
+    rows = con.execute("SELECT key, value FROM settings").fetchall()
+
+    settings.update({row["key"]: row["value"] for row in rows})
+
+    return settings
 
 
 def set_setting(con, key, value):
     con.execute(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, str(value))
+        """
+        INSERT INTO settings (key, value)
+        VALUES (?, ?)
+        ON CONFLICT (key)
+        DO UPDATE SET value = EXCLUDED.value
+        """,
+        (key, str(value)),
     )
