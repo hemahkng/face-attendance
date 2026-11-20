@@ -237,7 +237,7 @@ def _last_event(con, emp_id):
         FROM attendance
         WHERE emp_id = ?
           AND date = ?
-          AND voided = 0
+          AND COALESCE(voided, 0) = 0
         ORDER BY timestamp DESC
         LIMIT 1
         """,
@@ -280,11 +280,11 @@ def _mark(emp_id, name, min_gap):
 
         con.execute(
             """
-            INSERT INTO attendance
-                (emp_id, name, timestamp, date, event)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (emp_id, name, ts, ts[:10], event),
+    INSERT INTO attendance
+        (emp_id, name, timestamp, date, event, source, voided)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """,
+            (emp_id, name, ts, ts[:10], event, "kiosk", 0),
         )
 
     streaks.pop(emp_id, None)
